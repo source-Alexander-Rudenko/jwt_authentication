@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"github.com/gorilla/mux"
 	"jwt/internal/delivery"
+	"jwt/internal/repo"
+	"jwt/internal/usecase"
 	"log"
 	"net/http"
 )
@@ -24,7 +26,9 @@ func (s *APIServer) Run() error {
 	router := mux.NewRouter()
 	subrouter := router.PathPrefix("/app/v1").Subrouter()
 
-	userHandler := delivery.NewHandler()
+	userRepo := repo.NewRepo(s.db)
+	userUseCase := usecase.NewUserUsecase(userRepo)
+	userHandler := delivery.NewHandler(userUseCase)
 	userHandler.RegisterRoutes(subrouter)
 
 	log.Println("listening on address", s.addr)

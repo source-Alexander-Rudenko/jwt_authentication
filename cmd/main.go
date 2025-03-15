@@ -2,7 +2,6 @@ package main
 
 import (
 	"jwt/cmd/app"
-	"jwt/internal/repo"
 	"log"
 )
 
@@ -13,7 +12,7 @@ func main() {
 		log.Fatalf("Ощибка загрузки конфигурации: %v", err)
 	}
 	mysqlCfg := cfg.ToMySQLConfig()
-	db, err := repo.NewMySQLAStorage(mysqlCfg)
+	db, err := app.NewMySQLAStorage(mysqlCfg)
 	if err != nil {
 		log.Fatalf("Ошибка при подключении к бд: %v", err)
 	}
