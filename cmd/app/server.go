@@ -1,35 +1,34 @@
 package app
 
 import (
-	"database/sql"
 	"github.com/gorilla/mux"
-	"jwt/internal/delivery"
-	"jwt/internal/repo"
-	"jwt/internal/usecase"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"jwt_auth_project/internal/delivery"
+	"jwt_auth_project/internal/repo"
+	"jwt_auth_project/internal/usecase"
 	"log"
 	"net/http"
 )
 
 type APIServer struct {
 	addr string
-	db   *sql.DB
+	pool *pgxpool.Pool
 }
 
-func NewAPIServer(addr string, db *sql.DB) *APIServer {
+func NewAPIServer(addr string, pool *pgxpool.Pool) *APIServer {
 	return &APIServer{
 		addr: addr,
-		db:   db,
+		pool: pool,
 	}
 }
 
 func (s *APIServer) Run() error {
 	router := mux.NewRouter()
-	subrouter := router.PathPrefix("/app/v1").Subrouter()
 
-	userRepo := repo.NewRepo(s.db)
+	userRepo := repo.NewUserRepo(s.pool)
 	userUseCase := usecase.NewUserUsecase(userRepo)
 	userHandler := delivery.NewHandler(userUseCase)
-	userHandler.RegisterRoutes(subrouter)
+	userHandler.RegisterRoutes(router)
 
 	log.Println("listening on address", s.addr)
 

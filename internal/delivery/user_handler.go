@@ -3,9 +3,9 @@ package delivery
 import (
 	"fmt"
 	"github.com/gorilla/mux"
-	"jwt/internal/domain"
-	"jwt/internal/usecase"
-	"jwt/internal/utils"
+	"jwt_auth_project/internal/domain"
+	"jwt_auth_project/internal/usecase"
+	"jwt_auth_project/internal/utils"
 	"net/http"
 )
 
@@ -36,10 +36,9 @@ func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	err = h.userUseCase.CreateUser(domain.User{
-		FirstName: payload.Firstname,
-		LastName:  payload.Lastname,
-		Email:     payload.Email,
-		Password:  payload.Password,
+		Username: payload.Username,
+		Email:    payload.Email,
+		Password: payload.Password,
 	})
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err)

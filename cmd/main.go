@@ -1,28 +1,29 @@
 package main
 
 import (
-	"jwt/cmd/app"
-	"log"
+	"jwt_auth_project/cmd/app"
+	"jwt_auth_project/config"
+	"log/slog"
+	"os"
 )
 
 func main() {
+	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})
+	logger := slog.New(handler)
 
-	cfg, err := app.LoadConfig()
+	conf, err := config.LoadConfig()
 	if err != nil {
-		log.Fatalf("Ощибка загрузки конфигурации: %v", err)
-	}
-	mysqlCfg := cfg.ToMySQLConfig()
-	db, err := app.NewMySQLAStorage(mysqlCfg)
-	if err != nil {
-		log.Fatalf("Ошибка при подключении к бд: %v", err)
-	}
-	err = db.Ping()
-	if err != nil {
-		log.Fatalf("Ошибка при пинге бд %v", err)
+		app.Fatal("Error loading config", err)
 	}
 
-	server := app.NewAPIServer(":8080", nil)
+	pool, err := app.InitPostgres(conf.PostgresConfig, logger)
+	if err != nil {
+		app.Fatal("Error initializing postgres", err)
+	}
+	defer pool.Close()
+
+	server := app.NewAPIServer(":8080", pool)
 	if err := server.Run(); err != nil {
-		log.Fatal("Unable to run server", err)
+		app.Fatal("Error starting server", err)
 	}
 }

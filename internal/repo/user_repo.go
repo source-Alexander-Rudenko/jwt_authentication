@@ -1,70 +1,88 @@
 package repo
 
 import (
-	"database/sql"
+	"context"
 	"errors"
-	"jwt/internal/domain"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"jwt_auth_project/internal/domain"
 )
 
 type UserRepo struct {
-	db *sql.DB
+	pool *pgxpool.Pool
 }
 
-func NewRepo(db *sql.DB) *UserRepo {
-	return &UserRepo{db: db}
+// NewUserRepo создаст объект который, будет удовлетворять
+func NewUserRepo(pool *pgxpool.Pool) *UserRepo {
+	return &UserRepo{pool: pool}
 }
 
-var _ domain.UserRepository = (*UserRepo)(nil)
+type UserRepository interface {
+	GetUserByEmail(ctx context.Context, email string) (*domain.User, error)
+	GetUserByID(ctx context.Context, id int64) (*domain.User, error)
+	CreateUser(ctx context.Context, user *domain.User) error
+}
 
-func (r *UserRepo) GetUserByEmail(email string) (*domain.User, error) {
-	rows, err := r.db.Query("SELECT * FROM users WHERE email = ?", email)
-	if err != nil {
-		return nil, err
-	}
+func (r *UserRepo) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
 	u := new(domain.User)
-	for rows.Next() {
-		u, err = r.scanRowIntoUser(rows)
-		if err != nil {
-			return nil, err
-		}
-	}
-	if u.ID == 0 {
+	err := r.pool.
+		QueryRow(ctx,
+			`SELECT id, first_name, last_name, email, password, created_at
+             FROM users
+             WHERE email = $1`, email).
+		Scan(
+			&u.ID,
+			&u.FirstName,
+			&u.LastName,
+			&u.Email,
+			&u.Password,
+			&u.CreatedAt,
+		)
+
+	if err == pgx.ErrNoRows {
 		return nil, errors.New("user not found")
 	}
-	return u, nil
-}
-
-func (r *UserRepo) GetUserByID(id int64) (*domain.User, error) {
-	rows, err := r.db.Query("SELECT * FROM users WHERE id = ?", id)
 	if err != nil {
 		return nil, err
 	}
+	return u, nil
+}
+
+func (r *UserRepo) GetUserByID(ctx context.Context, id int64) (*domain.User, error) {
 	u := new(domain.User)
-	for rows.Next() {
-		u, err = r.scanRowIntoUser(rows)
-		if err != nil {
-			return nil, err
-		}
+	err := r.pool.
+		QueryRow(ctx,
+			`SELECT id, first_name, last_name, email, password, created_at
+             FROM users
+             WHERE id = $1`, id).
+		Scan(
+			&u.ID,
+			&u.FirstName,
+			&u.LastName,
+			&u.Email,
+			&u.Password,
+			&u.CreatedAt,
+		)
+
+	if err == pgx.ErrNoRows {
+		return nil, errors.New("user not found")
 	}
+
 	return u, nil
 }
 
-func (r *UserRepo) CreateUser(user domain.User) error {
-	return nil
-}
+func (r *UserRepo) CreateUser(ctx context.Context, user *domain.User) error {
+	err := r.pool.
+		QueryRow(ctx,
+			`INSERT INTO users (first_name, last_name, email, password)
+             VALUES ($1, $2, $3, $4)
+             RETURNING id, created_at`,
+			user.FirstName,
+			user.LastName,
+			user.Email,
+			user.Password,
+		).
+		Scan(&user.ID, &user.CreatedAt)
 
-func (r *UserRepo) scanRowIntoUser(rows *sql.Rows) (*domain.User, error) {
-	user := new(domain.User)
-	err := rows.Scan(
-		&user.ID,
-		&user.FirstName,
-		&user.LastName,
-		&user.Email,
-		&user.Password,
-		&user.CreatedAt,
-	)
-	if err != nil {
-		return nil, err
-	}
-	return user, nil
+	return err
 }

@@ -1,7 +1,8 @@
 package usecase
 
 import (
-	"jwt/internal/domain"
+	"jwt_auth_project/internal/domain"
+	"jwt_auth_project/internal/repo"
 )
 
 // UserUseCase - интерфейс для бизнес-логики работы с пользователями
@@ -12,11 +13,11 @@ type UserUseCase interface {
 }
 
 type userUseCase struct {
-	repo domain.UserRepository
+	repo repo.UserRepository
 }
 
 // NewUserUsecase - конструктор для создания нового userUseCase
-func NewUserUsecase(repo domain.UserRepository) UserUseCase {
+func NewUserUsecase(repo repo.UserRepository) UserUseCase {
 	return &userUseCase{repo: repo}
 }
 
