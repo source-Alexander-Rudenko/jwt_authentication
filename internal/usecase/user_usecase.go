@@ -13,7 +13,6 @@ import (
 	"jwt_auth_project/internal/domain"
 	"jwt_auth_project/internal/repo"
 	"jwt_auth_project/internal/utils"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -22,7 +21,7 @@ import (
 type UserUseCase interface {
 	Register(ctx context.Context, payload domain.RegisterUserPayload) (*domain.User, string, error)
 	Login(ctx context.Context, payload domain.LoginUserPayload) (string, error)
-	ValidateToken(tokenStr string) (int64, error)
+	ValidateToken(tokenStr string) (uuid.UUID, error)
 	GetUserByID(ctx context.Context, id int64) (*domain.User, error)
 }
 
@@ -101,7 +100,7 @@ func (u *userUseCase) Login(ctx context.Context, payload domain.LoginUserPayload
 }
 
 // ValidateToken парсит и проверяет JWT, возвращает userID из claims.Subject
-func (u *userUseCase) ValidateToken(tokenStr string) (int64, error) {
+func (u *userUseCase) ValidateToken(tokenStr string) (uuid.UUID, error) {
 	token, err := jwt.ParseWithClaims(tokenStr, &jwt.RegisteredClaims{}, func(t *jwt.Token) (interface{}, error) {
 		if t.Method != jwt.SigningMethodHS256 {
 			return nil, errors.New("unexpected signing method")
@@ -109,26 +108,22 @@ func (u *userUseCase) ValidateToken(tokenStr string) (int64, error) {
 		return u.jwtSecret, nil
 	})
 	if err != nil {
-		return 0, err
+		return uuid.Nil, err
 	}
 
 	claims, ok := token.Claims.(*jwt.RegisteredClaims)
 	if !ok || !token.Valid {
-		return 0, errors.New("invalid token")
+		return uuid.Nil, errors.New("invalid token")
 	}
 
-	uid, err := strconv.ParseInt(claims.Subject, 10, 64)
-	if err != nil {
-		return 0, err
-	}
-	return uid, nil
+	return uuid.Parse(claims.Subject)
 }
 
 // generateToken соберет JWT с полем Subject=userID и сроком ttl
 func (u *userUseCase) generateToken(userID uuid.UUID) (string, error) {
 	now := time.Now()
 	claims := jwt.RegisteredClaims{
-		Subject:   fmt.Sprintf("%d", userID),
+		Subject:   userID.String(),
 		IssuedAt:  jwt.NewNumericDate(now),
 		ExpiresAt: jwt.NewNumericDate(now.Add(u.ttl)),
 	}

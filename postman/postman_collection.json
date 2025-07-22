@@ -1,15 +1,9 @@
 {
   "info": {
-    "name": "JWT Auth Project",
+    "name": "JWT Auth & Ads API",
+    "description": "Postman collection for user registration/login/logout and full CRUD on /ads endpoints",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
-  "variable": [
-    {
-      "key": "base_url",
-      "value": "http://localhost:8080",
-      "type": "string"
-    }
-  ],
   "item": [
     {
       "name": "Register User",
@@ -23,11 +17,11 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"username\": \"testuser\",\n  \"email\": \"test@example.com\",\n  \"password\": \"Password1\"\n}"
+          "raw": "{\n  \"username\": \"{{username}}\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
         },
         "url": {
-          "raw": "{{base_url}}/register",
-          "host": ["{{base_url}}"],
+          "raw": "{{baseUrl}}/register",
+          "host": ["{{baseUrl}}"],
           "path": ["register"]
         }
       }
@@ -44,11 +38,11 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"Password1\"\n}"
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
         },
         "url": {
-          "raw": "{{base_url}}/login",
-          "host": ["{{base_url}}"],
+          "raw": "{{baseUrl}}/login",
+          "host": ["{{baseUrl}}"],
           "path": ["login"]
         }
       }
@@ -57,18 +51,119 @@
       "name": "Logout User",
       "request": {
         "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
         "url": {
-          "raw": "{{base_url}}/logout",
-          "host": ["{{base_url}}"],
+          "raw": "{{baseUrl}}/logout",
+          "host": ["{{baseUrl}}"],
           "path": ["logout"]
         }
       }
+    },
+    {
+      "name": "List Ads",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/ads?limit={{limit}}&offset={{offset}}&sort_field={{sort_field}}&sort_asc={{sort_asc}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["ads"],
+          "query": [
+            { "key": "limit", "value": "{{limit}}" },
+            { "key": "offset", "value": "{{offset}}" },
+            { "key": "sort_field", "value": "{{sort_field}}" },
+            { "key": "sort_asc", "value": "{{sort_asc}}" }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Create Ad",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "multipart/form-data"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "author_id",   "value": "{{author_id}}",   "type": "text" },
+            { "key": "title",       "value": "{{title}}",       "type": "text" },
+            { "key": "description", "value": "{{description}}", "type": "text" },
+            { "key": "price",       "value": "{{price}}",       "type": "text" },
+            { "key": "image",       "type": "file",            "src": "path/to/image.jpg" }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/ads",
+          "host": ["{{baseUrl}}"],
+          "path": ["ads"]
+        }
+      }
+    },
+    {
+      "name": "Get Ad",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/ads/{{ad_id}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["ads", "{{ad_id}}"]
+        }
+      }
+    },
+    {
+      "name": "Update Ad",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "multipart/form-data"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "title",       "value": "{{title}}",       "type": "text" },
+            { "key": "description", "value": "{{description}}", "type": "text" },
+            { "key": "price",       "value": "{{price}}",       "type": "text" },
+            { "key": "image",       "type": "file",            "src": "path/to/new-image.jpg" }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/ads/{{ad_id}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["ads", "{{ad_id}}"]
+        }
+      }
+    },
+    {
+      "name": "Delete Ad",
+      "request": {
+        "method": "DELETE",
+        "url": {
+          "raw": "{{baseUrl}}/ads/{{ad_id}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["ads", "{{ad_id}}"]
+        }
+      }
     }
+  ],
+  "variable": [
+    { "key": "baseUrl",     "value": "http://localhost:8080" },
+    { "key": "username",    "value": "user1" },
+    { "key": "email",       "value": "user1@example.com" },
+    { "key": "password",    "value": "Passw0rd!" },
+    { "key": "author_id",   "value": "" },
+    { "key": "title",       "value": "нахера я полез в s3" },
+    { "key": "description", "value": "описание чего-то" },
+    { "key": "price",       "value": "100.00" },
+    { "key": "limit",       "value": "10" },
+    { "key": "offset",      "value": "0" },
+    { "key": "sort_field",  "value": "created_at" },
+    { "key": "sort_asc",    "value": "false" },
+    { "key": "ad_id",       "value": "" }
   ]
 }

@@ -34,7 +34,7 @@ func LoadConfig() (*Config, error) {
 
 	//redisConfig, err := sessionRepository.GetRedisConfig()
 	//if err != nil {
-	//	return Config{}, errors.New("Failed to connect to the redis database")
+	//	return S3Config{}, errors.New("Failed to connect to the redis database")
 	//}
 	//conf.RedisConfig = *redisConfig
 
