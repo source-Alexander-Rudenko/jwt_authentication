@@ -6,9 +6,9 @@ import (
 )
 
 type RegisterUserPayload struct {
-	Username string `json:"username" validate:"required,min=3,max=30,regexp=^[\\w.]+$"`
+	Username string `json:"username" validate:"required,min=3,max=30"`
 	Email    string `json:"email"    validate:"required,email,max=150"`
-	Password string `json:"password" validate:"required,min=3,max=130,matches=^(?=.*[A-Za-z])(?=.*\\d)[[:alnum:][:punct:]]+$"`
+	Password string `json:"password" validate:"required,min=3,max=130"`
 }
 
 type User struct {
