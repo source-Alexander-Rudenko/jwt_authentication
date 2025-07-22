@@ -1,4 +1,4 @@
-package app
+package db
 
 import (
 	"context"
@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"github.com/jackc/pgx/v5/multitracer"
 	"github.com/jackc/pgx/v5/pgxpool"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jackc/pgx/v5/tracelog"
 	"github.com/pressly/goose/v3"
-	"jwt_auth_project/config"
+	"jwt_auth_project/internal/config"
+	"jwt_auth_project/internal/logger"
 	"log/slog"
 	"os"
 )
@@ -19,7 +21,7 @@ func InitPostgres(config config.PostgresConfig, slogger *slog.Logger) (*pgxpool.
 		return nil, fmt.Errorf("unable to parse db URL: %v", err)
 	}
 
-	queryTracer := NewTracer(slogger, tracelog.LogLevelDebug)
+	queryTracer := logger.NewTracer(slogger, tracelog.LogLevelDebug)
 
 	dbConf.ConnConfig.Tracer = multitracer.New(queryTracer)
 

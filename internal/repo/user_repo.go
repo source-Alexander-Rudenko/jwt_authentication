@@ -20,20 +20,19 @@ func NewUserRepo(pool *pgxpool.Pool) *UserRepo {
 type UserRepository interface {
 	GetUserByEmail(ctx context.Context, email string) (*domain.User, error)
 	GetUserByID(ctx context.Context, id int64) (*domain.User, error)
-	CreateUser(ctx context.Context, user *domain.User) error
+	CreateUser(ctx context.Context, user domain.User) error
 }
 
 func (r *UserRepo) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
 	u := new(domain.User)
 	err := r.pool.
 		QueryRow(ctx,
-			`SELECT id, first_name, last_name, email, password, created_at
-             FROM users
+			`SELECT id, username, email, password_hash, created_at
+             FROM "USER"
              WHERE email = $1`, email).
 		Scan(
 			&u.ID,
-			&u.FirstName,
-			&u.LastName,
+			&u.Username,
 			&u.Email,
 			&u.Password,
 			&u.CreatedAt,
@@ -52,13 +51,12 @@ func (r *UserRepo) GetUserByID(ctx context.Context, id int64) (*domain.User, err
 	u := new(domain.User)
 	err := r.pool.
 		QueryRow(ctx,
-			`SELECT id, first_name, last_name, email, password, created_at
-             FROM users
+			`SELECT id, username, email, password_hash, created_at
+             FROM "USER"
              WHERE id = $1`, id).
 		Scan(
 			&u.ID,
-			&u.FirstName,
-			&u.LastName,
+			&u.Username,
 			&u.Email,
 			&u.Password,
 			&u.CreatedAt,
@@ -71,18 +69,18 @@ func (r *UserRepo) GetUserByID(ctx context.Context, id int64) (*domain.User, err
 	return u, nil
 }
 
-func (r *UserRepo) CreateUser(ctx context.Context, user *domain.User) error {
-	err := r.pool.
-		QueryRow(ctx,
-			`INSERT INTO users (first_name, last_name, email, password)
-             VALUES ($1, $2, $3, $4)
-             RETURNING id, created_at`,
-			user.FirstName,
-			user.LastName,
+func (r *UserRepo) CreateUser(ctx context.Context, user domain.User) error {
+	_, err := r.pool.
+		Exec(ctx,
+			`INSERT INTO "USER" (id, username, email, password_hash, created_at)
+             VALUES ($1, $2, $3, $4, $5)
+             `,
+			user.ID,
+			user.Username,
 			user.Email,
 			user.Password,
-		).
-		Scan(&user.ID, &user.CreatedAt)
+			user.CreatedAt,
+		)
 
 	return err
 }

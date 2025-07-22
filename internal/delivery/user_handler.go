@@ -2,11 +2,15 @@ package delivery
 
 import (
 	"fmt"
+	"log/slog"
+	"net/http"
+	"time"
+
 	"github.com/gorilla/mux"
+
 	"jwt_auth_project/internal/domain"
 	"jwt_auth_project/internal/usecase"
 	"jwt_auth_project/internal/utils"
-	"net/http"
 )
 
 type Handler struct {
@@ -18,31 +22,94 @@ func NewHandler(userUseCase usecase.UserUseCase) *Handler {
 }
 
 func (h *Handler) RegisterRoutes(router *mux.Router) {
-	router.HandleFunc("/login", h.handleLogin).Methods(http.MethodPost)
 	router.HandleFunc("/register", h.handleRegister).Methods(http.MethodPost)
-}
-
-func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/login", h.handleLogin).Methods(http.MethodPost)
+	router.HandleFunc("/logout", h.handleLogout).Methods(http.MethodPost)
 }
 
 func (h *Handler) handleRegister(w http.ResponseWriter, r *http.Request) {
 	var payload domain.RegisterUserPayload
-	if err := utils.ParceJSON(r, payload); err != nil {
+	if err := utils.ParceJSON(r, &payload); err != nil {
+		slog.Error("register: invalid JSON", "error", err)
 		utils.WriteError(w, http.StatusBadRequest, err)
-	}
-	_, err := h.userUseCase.GetUserByEmail(payload.Email)
-	if err == nil {
-		utils.WriteError(w, http.StatusBadRequest, fmt.Errorf("user with email %s already exists", payload.Email))
 		return
 	}
-	err = h.userUseCase.CreateUser(domain.User{
-		Username: payload.Username,
-		Email:    payload.Email,
-		Password: payload.Password,
-	})
+
+	user, token, err := h.userUseCase.Register(r.Context(), payload)
 	if err != nil {
-		utils.WriteError(w, http.StatusInternalServerError, err)
+		slog.Error("register: usecase failed", "email", payload.Email, "error", err)
+		utils.WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-	utils.WriteJSON(w, http.StatusCreated, nil)
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "jwt",
+		Value:    token,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+	})
+
+	slog.Info("user registered", "email", user.Email)
+
+	resp := map[string]any{
+		"username":   user.Username,
+		"email":      user.Email,
+		"created_at": user.CreatedAt,
+	}
+	if err := utils.WriteJSON(w, http.StatusCreated, resp); err != nil {
+		slog.Error("register: write response failed", "error", err)
+	}
+}
+
+func (h *Handler) handleLogin(w http.ResponseWriter, r *http.Request) {
+	var payload domain.LoginUserPayload
+	if err := utils.ParceJSON(r, &payload); err != nil {
+		slog.Error("login: invalid JSON", "error", err)
+		utils.WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	token, err := h.userUseCase.Login(r.Context(), payload)
+	if err != nil {
+		slog.Error("login: usecase failed", "email", payload.Email, "error", err)
+		utils.WriteError(w, http.StatusUnauthorized, fmt.Errorf("invalid credentials"))
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "jwt",
+		Value:    token,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+	})
+
+	slog.Info("user logged in", "email", payload.Email)
+
+	// Можно вернуть простое сообщение
+	if err := utils.WriteJSON(w, http.StatusOK, map[string]string{"message": "ok"}); err != nil {
+		slog.Error("login: write response failed", "error", err)
+	}
+}
+
+func (h *Handler) handleLogout(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "jwt",
+		Value:    "",
+		Path:     "/",
+		Expires:  time.Unix(0, 0),
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+	})
+
+	slog.Info("user logged out")
+
+	if err := utils.WriteJSON(w, http.StatusOK, map[string]string{"message": "logged out"}); err != nil {
+		slog.Error("logout: write response failed", "error", err)
+	}
 }
